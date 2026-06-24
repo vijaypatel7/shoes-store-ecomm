@@ -3,8 +3,6 @@
 A modern, full-featured sneaker e-commerce platform built with React, Node.js,
 Express, and MongoDB.
 
-![SoleStore Banner](./docs/banner.png)
-
 ---
 
 ## 📋 Table of Contents
@@ -234,19 +232,6 @@ npm run build
 
 ---
 
-## 🖼️ Screenshots
-
-| Page | Preview |
-|---|---|
-| Home | ![Home](./docs/home.png) |
-| Shop | ![Shop](./docs/shop.png) |
-| Product Detail | ![Product](./docs/product.png) |
-| Cart | ![Cart](./docs/cart.png) |
-| Admin Dashboard | ![Dashboard](./docs/dashboard.png) |
-| Admin Analytics | ![Analytics](./docs/analytics.png) |
-
----
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -267,7 +252,6 @@ See the [LICENSE](./LICENSE) file for details.
 ## 👨‍💻 Author
 
 Built with ❤️ by **Vijay Patel**
-- GitHub: [@yourusername](https://github.com/vijaypatel7)
 ---
 
 <p align="center">
