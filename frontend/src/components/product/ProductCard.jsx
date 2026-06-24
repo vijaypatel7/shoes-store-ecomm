@@ -1,17 +1,20 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ShoppingBag, Heart, Star, Eye } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ShoppingBag, Heart, Star, Eye } from "lucide-react";
+import { useCart } from "../../context/CartContext";
+import { useWishlist } from "../../context/WishlistContext";
+import { useAuth } from "../../context/AuthContext";
+import toast from "react-hot-toast";
 
 const ProductCard = ({ product, index = 0 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-
   const { addToCart } = useCart();
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const { user } = useAuth();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const liked = isInWishlist(product._id);
   const navigate = useNavigate();
-
   const handleQuickAdd = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -23,8 +26,30 @@ const ProductCard = ({ product, index = 0 }) => {
         product._id,
         availableSize.size,
         product.colors?.[0] || null,
-        1
+        1,
       );
+    }
+  };
+  const handleWishlistToggle = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      toast.error("Please login to save items");
+      navigate("/login");
+      return;
+    }
+    try {
+      if (liked) {
+        await removeFromWishlist(product._id);
+        toast.success("Removed from wishlist");
+      } else {
+        await addToWishlist(product._id);
+        toast.success("Added to wishlist");
+      }
+    } catch (error) {
+      toast.error("Failed to update wishlist");
+      console.error(error);
     }
   };
 
@@ -46,19 +71,13 @@ const ProductCard = ({ product, index = 0 }) => {
       <Link to={`/product/${product.slug}`} className="block">
         {/* Image Container */}
         <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 mb-3">
-          {!imageLoaded && (
-            <div className="absolute inset-0 shimmer" />
-          )}
-
+          {!imageLoaded && <div className="absolute inset-0 shimmer" />}
           <motion.img
-            src={
-              product.images?.[0]?.url ||
-              'https://via.placeholder.com/400'
-            }
+            src={product.images?.[0]?.url || "https://via.placeholder.com/400"}
             alt={product.name}
             className={`w-full h-full object-cover transition-transform duration-700
               group-hover:scale-110 ${
-                imageLoaded ? 'opacity-100' : 'opacity-0'
+                imageLoaded ? "opacity-100" : "opacity-0"
               }`}
             onLoad={() => setImageLoaded(true)}
           />
@@ -101,22 +120,15 @@ const ProductCard = ({ product, index = 0 }) => {
           {/* Wishlist */}
           <motion.button
             whileTap={{ scale: 0.8 }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setLiked(!liked);
-            }}
+            onClick={handleWishlistToggle}
             className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center
-              transition-all duration-300 ${
-                liked
-                  ? 'bg-red-500 text-white'
-                  : 'bg-white/80 backdrop-blur text-dark-600 opacity-0 group-hover:opacity-100'
-              }`}
+    transition-all duration-300 ${
+      liked
+        ? "bg-red-500 text-white"
+        : "bg-white/80 backdrop-blur text-dark-600 opacity-0 group-hover:opacity-100"
+    }`}
           >
-            <Heart
-              size={16}
-              fill={liked ? 'currentColor' : 'none'}
-            />
+            <Heart size={16} fill={liked ? "currentColor" : "none"} />
           </motion.button>
 
           {/* Quick Actions */}
@@ -162,11 +174,7 @@ const ProductCard = ({ product, index = 0 }) => {
           {/* Rating */}
           {product.rating?.count > 0 && (
             <div className="flex items-center gap-1">
-              <Star
-                size={12}
-                className="text-yellow-400"
-                fill="currentColor"
-              />
+              <Star size={12} className="text-yellow-400" fill="currentColor" />
               <span className="text-xs font-medium text-dark-600">
                 {product.rating.average}
               </span>
@@ -177,34 +185,26 @@ const ProductCard = ({ product, index = 0 }) => {
           )}
 
           {/* Colors */}
-          {Array.isArray(product.colors) &&
-            product.colors.length > 0 && (
-              <div className="flex items-center gap-1">
-                {product.colors.slice(0, 4).map((color, i) => (
-                  <div
-                    key={i}
-                    className="w-3.5 h-3.5 rounded-full border border-gray-200"
-                    style={{
-                      backgroundColor:
-                        typeof color === 'object'
-                          ? color.hex
-                          : '#d1d5db',
-                    }}
-                    title={
-                      typeof color === 'object'
-                        ? color.name
-                        : color
-                    }
-                  />
-                ))}
-
-                {product.colors.length > 4 && (
-                  <span className="text-[10px] text-dark-400">
-                    +{product.colors.length - 4}
-                  </span>
-                )}
-              </div>
-            )}
+          {Array.isArray(product.colors) && product.colors.length > 0 && (
+            <div className="flex items-center gap-1">
+              {product.colors.slice(0, 4).map((color, i) => (
+                <div
+                  key={i}
+                  className="w-3.5 h-3.5 rounded-full border border-gray-200"
+                  style={{
+                    backgroundColor:
+                      typeof color === "object" ? color.hex : "#d1d5db",
+                  }}
+                  title={typeof color === "object" ? color.name : color}
+                />
+              ))}
+              {product.colors.length > 4 && (
+                <span className="text-[10px] text-dark-400">
+                  +{product.colors.length - 4}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Price */}
           <div className="flex items-center gap-2 pt-1">

@@ -19,6 +19,7 @@ import orderRoutes from './routes/orders.js';
 import reviewRoutes from './routes/reviews.js';
 import paymentRoutes from './routes/payment.js';
 import adminRoutes from './routes/admin.js';
+import userRoutes from './routes/users.js';
 
 dotenv.config();
 
@@ -60,7 +61,7 @@ app.use(
 // Passport
 app.use(passportConfig.initialize());
 app.use(passportConfig.session());
-
+app.use('/api/users', userRoutes);
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

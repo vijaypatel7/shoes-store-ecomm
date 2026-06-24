@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useWishlist } from '../../context/WishlistContext';
 import {
   ShoppingBag,
   Search,
@@ -26,6 +27,10 @@ const Navbar = () => {
   const { cartCount, setCartOpen } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
+  const {
+  wishlistCount,
+  wishlistAnimationKey,
+} = useWishlist();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -131,12 +136,44 @@ const Navbar = () => {
               </motion.button>
 
               {/* Wishlist */}
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                className="p-2.5 hover:bg-gray-100 rounded-full transition-colors hidden sm:flex"
-              >
-                <Heart size={20} />
-              </motion.button>
+              
+ <Link to="/wishlist">
+  <motion.button
+    key={wishlistAnimationKey}
+    animate={{
+      scale: [1, 1.35, 1],
+      rotate: [0, -12, 12, -8, 8, 0],
+    }}
+    transition={{
+      duration: 0.6,
+      ease: 'easeInOut',
+    }}
+    className="p-2.5 hover:bg-gray-100 rounded-full transition-colors hidden sm:flex relative"
+  >
+    <Heart
+      size={20}
+      className={
+        wishlistCount > 0
+          ? 'fill-red-500 text-red-500'
+          : ''
+      }
+    />
+
+    {wishlistCount > 0 && (
+      <motion.span
+        key={wishlistCount}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1.2 }}
+        transition={{ type: 'spring' }}
+        className="absolute -top-0.5 -right-0.5 bg-red-500 text-white
+          text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center"
+      >
+        {wishlistCount}
+      </motion.span>
+    )}
+  </motion.button>
+</Link>
+
 
               {/* Cart */}
               <motion.button

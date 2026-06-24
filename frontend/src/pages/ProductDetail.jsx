@@ -22,6 +22,7 @@ import SizeSelector from "../components/product/SizeSelector";
 import ColorSelector from "../components/product/ColorSelector";
 import ProductGrid from "../components/product/ProductGrid";
 import Loader from "../components/ui/Loader";
+import { useWishlist } from "../context/WishlistContext";
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -36,7 +37,6 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
-  const [wishlist, setWishlist] = useState(false);
   const [adding, setAdding] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
   const [reviews, setReviews] = useState([]);
@@ -44,7 +44,8 @@ const ProductDetail = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
   const [sizeError, setSizeError] = useState(false);
-
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const wishlist = product ? isInWishlist(product._id) : false;
   useEffect(() => {
     fetchProduct();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -57,7 +58,7 @@ const ProductDetail = () => {
       setProduct(data.product);
       setSelectedColor(data.product.colors?.[0] || "");
       fetchRelated(data.product.category, data.product._id);
-      fetchReviews();
+      await fetchReviews(data.product._id);
     } catch {
       navigate("/not-found");
     } finally {
@@ -77,13 +78,13 @@ const ProductDetail = () => {
       // silent fail
     }
   };
-
-  const fetchReviews = async () => {
+  const fetchReviews = async (id) => {
+    if (!id) return;
     try {
-      const { data } = await API.get(`/reviews/${product._id}`);
+      const { data } = await API.get(`/reviews/product/${id}`);
       setReviews(data.reviews || []);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.log(err);
     }
   };
 
@@ -113,9 +114,13 @@ const ProductDetail = () => {
     }
     setSubmittingReview(true);
     try {
-      await API.post(`/reviews/${product._id}`, reviewForm);
+      await API.post(`/reviews`, {
+        productId: product._id,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      });
       setReviewForm({ rating: 5, comment: "" });
-      fetchReviews();
+      await fetchReviews(product._id);
     } catch {
       // handle error
     } finally {
@@ -197,7 +202,13 @@ const ProductDetail = () => {
 
               {/* Wishlist */}
               <button
-                onClick={() => setWishlist(!wishlist)}
+                onClick={async () => {
+                  if (wishlist) {
+                    await removeFromWishlist(product._id);
+                  } else {
+                    await addToWishlist(product._id);
+                  }
+                }}
                 className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full
                   shadow-md flex items-center justify-center transition-all
                   hover:scale-110"

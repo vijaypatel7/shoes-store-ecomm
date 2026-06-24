@@ -293,41 +293,6 @@ const Login = () => {
             </motion.button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-gray-100" />
-            <span className="text-xs text-dark-400 font-medium">
-              or try a demo account
-            </span>
-            <div className="flex-1 h-px bg-gray-100" />
-          </div>
-
-          {/* Demo Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('user')}
-              disabled={loading}
-              className="py-2.5 border border-gray-200 rounded-xl text-xs
-                font-semibold text-dark-700 hover:bg-gray-50 hover:border-gray-300
-                transition-all disabled:opacity-60 flex items-center
-                justify-center gap-1.5"
-            >
-              👟 Demo User
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('admin')}
-              disabled={loading}
-              className="py-2.5 border border-gray-200 rounded-xl text-xs
-                font-semibold text-dark-700 hover:bg-gray-50 hover:border-gray-300
-                transition-all disabled:opacity-60 flex items-center
-                justify-center gap-1.5"
-            >
-              🔑 Demo Admin
-            </button>
-          </div>
-
           {/* Register Link */}
           <p className="text-center text-sm text-dark-500 mt-6">
             Don't have an account?{' '}
@@ -336,7 +301,7 @@ const Login = () => {
               className="text-dark-950 font-semibold hover:text-primary-500
                 transition-colors"
             >
-              Create one free
+              Register
             </Link>
           </p>
         </motion.div>

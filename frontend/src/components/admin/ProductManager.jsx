@@ -22,11 +22,15 @@ import toast from "react-hot-toast";
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
   "Running",
-  "Basketball",
   "Casual",
-  "Training",
-  "Lifestyle",
+  "Formal",
+  "Sports",
   "Sneakers",
+  "Boots",
+  "Sandals",
+  "Loafers",
+  "Slip-Ons",
+  "Training",
 ];
 const BRANDS = [
   "Nike",
@@ -131,6 +135,16 @@ const DeleteConfirmModal = ({ product, onConfirm, onCancel, loading }) => (
     </motion.div>
   </AnimatePresence>
 );
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+
+const getImageUrl = (url) => {
+  if (!url) return "/placeholder.png";
+
+  if (url.startsWith("http")) {
+    return url;
+  }
+  return `${API_URL}${url}`;
+};
 
 // ─── Product Form Modal ───────────────────────────────────────────────────────
 const ProductFormModal = ({ product, onClose, onSave }) => {
@@ -155,7 +169,9 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
       : EMPTY_FORM,
   );
   const [images, setImages] = useState([]);
-  const [previewUrls, setPreviewUrls] = useState(product?.images || []);
+  const [previewUrls, setPreviewUrls] = useState(
+    product?.images?.map((img) => getImageUrl(img.url)) || [],
+  );
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [colorInput, setColorInput] = useState("");
@@ -280,7 +296,16 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
         toast.success("Product created successfully");
       }
       console.log("CREATE RESPONSE:", response.data);
-onSave(response.data.product);
+      const savedProduct = {
+        ...response.data.product,
+        images:
+          response.data.product.images?.map((img) => ({
+            ...img,
+            url: getImageUrl(img.url),
+          })) || [],
+      };
+
+      onSave(savedProduct);
       onClose();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to save product");
@@ -348,7 +373,7 @@ onSave(response.data.product);
                       border-2 border-gray-200 group"
                   >
                     <img
-                      src={url}
+                      src={typeof url === "string" ? url : getImageUrl(url.url)}
                       alt={`Preview ${idx + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -569,25 +594,25 @@ onSave(response.data.product);
                 </button>
               </div>
               {form.colors.length > 0 && (
-  <div className="flex flex-wrap gap-2">
-    {form.colors.map((color, index) => (
-      <span
-        key={`${color}-${index}`}
-        className="flex items-center gap-1.5 px-3 py-1 bg-gray-100
+                <div className="flex flex-wrap gap-2">
+                  {form.colors.map((color, index) => (
+                    <span
+                      key={`${color}-${index}`}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-gray-100
           text-dark-700 rounded-full text-xs font-medium"
-      >
-        {color}
-        <button
-          type="button"
-          onClick={() => removeColor(color)}
-          className="hover:text-red-500 transition-colors"
-        >
-          <X size={11} />
-        </button>
-      </span>
-    ))}
-  </div>
-)}
+                    >
+                      {color}
+                      <button
+                        type="button"
+                        onClick={() => removeColor(color)}
+                        className="hover:text-red-500 transition-colors"
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </FormField>
 
             {/* Flags */}
@@ -686,17 +711,6 @@ onSave(response.data.product);
 };
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-const getImageUrl = (url) => {
-  if (!url) return "/placeholder.png";
-
-  if (url.startsWith("http")) {
-    return url;
-  }
-
-  return `http://localhost:5001${url}`;
-};
-
-
 // ─── Main ProductManager ──────────────────────────────────────────────────────
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
@@ -712,29 +726,29 @@ const ProductManager = () => {
   const [categoryOpen, setCategoryOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const { data } = await API.get("/admin/products", {
-      params: {
-        page,
-        limit: 10,
-        search: search || undefined,
-        category: categoryFilter || undefined,
-      },
-    });
+    try {
+      const { data } = await API.get("/admin/products", {
+        params: {
+          page,
+          limit: 10,
+          search: search || undefined,
+          category: categoryFilter || undefined,
+        },
+      });
 
-    console.log("Products API Response:", data);
+      console.log("Products API Response:", data);
 
-    setProducts(data.products || []);
-    setPagination(data.pagination || {});
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to fetch products");
-  } finally {
-    setLoading(false);
-  }
-}, [page, search, categoryFilter]);
+      setProducts(data.products || []);
+      setPagination(data.pagination || {});
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch products");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, categoryFilter]);
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
@@ -743,35 +757,26 @@ const ProductManager = () => {
     setPage(1);
   }, [search, categoryFilter]);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts, page]);
-
   const handleSave = (savedProduct) => {
-  console.log("savedProduct", savedProduct);
+    console.log("savedProduct", savedProduct);
 
-  if (!savedProduct || !savedProduct._id) {
-    toast.error("Invalid product returned from server");
-    fetchProducts();
-    return;
-  }
-
-  setProducts((prev) => {
-    const exists = prev.find(
-      (p) => p && p._id === savedProduct._id
-    );
-
-    if (exists) {
-      return prev.map((p) =>
-        p && p._id === savedProduct._id
-          ? savedProduct
-          : p
-      );
+    if (!savedProduct || !savedProduct._id) {
+      toast.error("Invalid product returned from server");
+      fetchProducts();
+      return;
     }
 
-    return [savedProduct, ...prev];
-  });
-};
+    setProducts((prev) => {
+      const exists = prev.find((p) => p && p._id === savedProduct._id);
+
+      if (exists) {
+        return prev.map((p) =>
+          p && p._id === savedProduct._id ? savedProduct : p,
+        );
+      }
+      return [savedProduct, ...prev];
+    });
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -969,13 +974,19 @@ const ProductManager = () => {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <img
-  src={getImageUrl(product.images?.[0]?.url)}
-  alt={product.name}
-  className="w-12 h-12 rounded-xl object-cover bg-gray-100 flex-shrink-0"
-  onError={(e) => {
-    e.target.src = "/placeholder.png";
-  }}
-/>
+                              src={getImageUrl(product.images?.[0]?.url)}
+                              alt={product.name}
+                              className="w-12 h-12 rounded-xl object-cover bg-gray-100 flex-shrink-0"
+                              onError={(e) => {
+                                if (
+                                  !e.currentTarget.src.includes(
+                                    "placeholder.png",
+                                  )
+                                ) {
+                                  e.currentTarget.src = "/placeholder.png";
+                                }
+                              }}
+                            />
                             <div className="min-w-0">
                               <p
                                 className="font-medium text-dark-900 truncate

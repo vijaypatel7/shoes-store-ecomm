@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 
 export const getDashboardStats = async (req, res) => {
   try {
-    console.log('Dashboard stats called');
+    console.log("Dashboard stats called");
 
     const [totalUsers, totalProducts, totalOrders, revenueResult] =
       await Promise.all([
@@ -15,33 +15,33 @@ export const getDashboardStats = async (req, res) => {
         Order.aggregate([
           {
             $match: {
-              paymentStatus: 'paid',
+              paymentStatus: "paid",
             },
           },
           {
             $group: {
               _id: null,
               totalRevenue: {
-                $sum: '$totalAmount',
+                $sum: "$totalAmount",
               },
             },
           },
         ]),
       ]);
 
-    console.log('Counts loaded successfully');
+    console.log("Counts loaded successfully");
 
     const recentOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate('user', 'name email');
+      .populate("user", "name email");
 
-    console.log('Recent orders loaded');
+    console.log("Recent orders loaded");
 
     const ordersByStatus = await Order.aggregate([
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: {
             $sum: 1,
           },
@@ -49,7 +49,7 @@ export const getDashboardStats = async (req, res) => {
       },
     ]);
 
-    console.log('Status aggregation loaded');
+    console.log("Status aggregation loaded");
 
     res.json({
       success: true,
@@ -63,7 +63,7 @@ export const getDashboardStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('DASHBOARD ERROR');
+    console.error("DASHBOARD ERROR");
     console.error(error);
     console.error(error.stack);
 
@@ -143,8 +143,10 @@ export const createProduct = async (req, res) => {
 
     // Images
     if (req.files?.length) {
+      const baseUrl = process.env.BACKEND_URL || "http://localhost:5001";
+
       productData.images = req.files.map((file) => ({
-        url: `/uploads/${file.filename}`,
+        url: `${baseUrl}/uploads/${file.filename}`,
         alt: req.body.name,
       }));
     }
@@ -181,17 +183,26 @@ export const updateProduct = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true },
-    );
+    const product = await Product.findByIdAndDelete(req.params.id);
+
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
-    res.json({ success: true, message: "Product deactivated" });
+
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Delete Product Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -240,6 +251,7 @@ export const getRevenueData = async (req, res) => {
             $dateToString: {
               format: "%Y-%m-%d",
               date: "$createdAt",
+              timezone: "UTC",
             },
           },
           revenue: { $sum: "$totalAmount" },
@@ -287,7 +299,7 @@ export const getLowStockProducts = async (req, res) => {
       products: formattedProducts,
     });
   } catch (error) {
-    console.error('Low stock products error:', error);
+    console.error("Low stock products error:", error);
 
     res.status(500).json({
       success: false,
@@ -309,7 +321,9 @@ export const getAnalyticsSummary = async (req, res) => {
 
     const totalRevenue = totalRevenueResult[0]?.totalRevenue || 0;
     const totalOrders = await Order.countDocuments();
-    const newUsers = await User.countDocuments();
+    const newUsers = await User.countDocuments({
+      createdAt: { $gte: startDate },
+    });
 
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
@@ -356,33 +370,33 @@ export const getAnalyticsCharts = async (req, res) => {
     //
 
     const revenueRaw = await Order.aggregate([
-  {
-    $match: {
-      paymentStatus: "paid",
-      createdAt: {
-        $gte: startDate,
-      },
-    },
-  },
-  {
-    $group: {
-      _id: {
-        $dateToString: {
-          format: "%Y-%m-%d",
-          date: "$createdAt",
+      {
+        $match: {
+          paymentStatus: "paid",
+          createdAt: {
+            $gte: startDate,
+          },
         },
       },
-      revenue: {
-        $sum: "$totalAmount",
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt",
+            },
+          },
+          revenue: {
+            $sum: "$totalAmount",
+          },
+        },
       },
-    },
-  },
-  {
-    $sort: {
-      _id: 1,
-    },
-  },
-]);
+      {
+        $sort: {
+          _id: 1,
+        },
+      },
+    ]);
 
     const revenueMap = new Map(
       revenueRaw.map((item) => [item._id, item.revenue]),
@@ -526,12 +540,14 @@ export const getAnalyticsCharts = async (req, res) => {
     //
     // USER GROWTH
     //
+    const existingUsersBeforePeriod = await User.countDocuments({
+      createdAt: { $lt: startDate },
+    });
+
     const usersRaw = await User.aggregate([
       {
         $match: {
-          createdAt: {
-            $gte: startDate,
-          },
+          createdAt: { $gte: startDate },
         },
       },
       {
@@ -540,31 +556,42 @@ export const getAnalyticsCharts = async (req, res) => {
             $dateToString: {
               format: "%Y-%m-%d",
               date: "$createdAt",
+              timezone: "UTC",
             },
           },
-          newUsers: {
-            $sum: 1,
-          },
-        },
-      },
-      {
-        $sort: {
-          _id: 1,
+          newUsers: { $sum: 1 },
         },
       },
     ]);
 
-    let runningTotal = 0;
+    const usersMap = new Map(usersRaw.map((u) => [u._id, u.newUsers]));
 
-    const userGrowth = usersRaw.map((u) => {
-      runningTotal += u.newUsers;
+    let runningTotal = existingUsersBeforePeriod;
 
-      return {
-        date: u._id,
-        newUsers: u.newUsers,
+    const userGrowth = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+
+      const key = new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+      )
+        .toISOString()
+        .split("T")[0];
+      const newUsers = usersMap.get(key) || 0;
+
+      runningTotal += newUsers;
+
+      userGrowth.push({
+        date: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        newUsers,
         totalUsers: runningTotal,
-      };
-    });
+      });
+    }
 
     res.json({
       revenue,
@@ -581,7 +608,7 @@ export const getAnalyticsCharts = async (req, res) => {
   }
 };
 
- export const getAllProducts = async (req, res) => {
+export const getAllProducts = async (req, res) => {
   try {
     let { page = 1, limit = 10, search = "", category } = req.query;
 
@@ -622,42 +649,39 @@ export const getAnalyticsCharts = async (req, res) => {
 export const exportOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate('user', 'name email')
+      .populate("user", "name email")
       .sort({ createdAt: -1 });
 
     const rows = [
       [
-        'Order ID',
-        'Customer',
-        'Email',
-        'Status',
-        'Total Amount',
-        'Payment Status',
-        'Date',
-      ].join(','),
+        "Order ID",
+        "Customer",
+        "Email",
+        "Status",
+        "Total Amount",
+        "Payment Status",
+        "Date",
+      ].join(","),
     ];
 
     orders.forEach((order) => {
       rows.push(
         [
           order._id,
-          `"${order.user?.name || ''}"`,
-          `"${order.user?.email || ''}"`,
+          `"${order.user?.name || ""}"`,
+          `"${order.user?.email || ""}"`,
           order.status,
           order.totalAmount,
           order.paymentStatus,
           order.createdAt.toISOString(),
-        ].join(',')
+        ].join(","),
       );
     });
 
-    const csv = rows.join('\n');
+    const csv = rows.join("\n");
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename=orders.csv'
-    );
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=orders.csv");
 
     res.send(csv);
   } catch (error) {

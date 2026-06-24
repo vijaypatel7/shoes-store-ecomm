@@ -12,6 +12,7 @@ import Orders from './pages/Orders';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import Loader from './components/ui/Loader';
+import Wishlist from './pages/Wishlist';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -48,6 +49,8 @@ const App = () => {
         <Route path="/product/:slug" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/not-found" element={<NotFound />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+
 
         {/* Guest Only */}
         <Route
