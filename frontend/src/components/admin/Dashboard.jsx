@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   ShoppingBag,
   Users,
@@ -13,8 +13,8 @@ import {
   CheckCircle,
   XCircle,
   Truck,
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   AreaChart,
   Area,
@@ -23,11 +23,18 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
-import API from '../../api/axios';
+} from "recharts";
+import API from "../../api/axios";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-const StatCard = ({ title, value, change, icon: Icon, bgColor, prefix = '' }) => {
+const StatCard = ({
+  title,
+  value,
+  change,
+  icon: Icon,
+  bgColor,
+  prefix = "",
+}) => {
   const isPositive = change >= 0;
   return (
     <motion.div
@@ -45,18 +52,23 @@ const StatCard = ({ title, value, change, icon: Icon, bgColor, prefix = '' }) =>
         <span
           className={`flex items-center gap-1 text-xs font-semibold px-2 py-1
             rounded-full
-            ${isPositive
-              ? 'bg-emerald-50 text-emerald-600'
-              : 'bg-red-50 text-red-500'
+            ${
+              isPositive
+                ? "bg-emerald-50 text-emerald-600"
+                : "bg-red-50 text-red-500"
             }`}
         >
-          {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+          {isPositive ? (
+            <ArrowUpRight size={12} />
+          ) : (
+            <ArrowDownRight size={12} />
+          )}
           {Math.abs(change ?? 0)}%
         </span>
       </div>
       <p className="text-2xl font-display font-bold text-dark-950">
         {prefix}
-        {typeof value === 'number' ? value.toLocaleString() : (value ?? '—')}
+        {typeof value === "number" ? value.toLocaleString() : (value ?? "—")}
       </p>
       <p className="text-sm text-dark-400 mt-1">{title}</p>
     </motion.div>
@@ -66,28 +78,28 @@ const StatCard = ({ title, value, change, icon: Icon, bgColor, prefix = '' }) =>
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 const statusConfig = {
   pending: {
-    label: 'Pending',
-    color: 'bg-amber-50 text-amber-600',
+    label: "Pending",
+    color: "bg-amber-50 text-amber-600",
     icon: Clock,
   },
   processing: {
-    label: 'Processing',
-    color: 'bg-blue-50 text-blue-600',
+    label: "Processing",
+    color: "bg-blue-50 text-blue-600",
     icon: Package,
   },
   shipped: {
-    label: 'Shipped',
-    color: 'bg-indigo-50 text-indigo-600',
+    label: "Shipped",
+    color: "bg-indigo-50 text-indigo-600",
     icon: Truck,
   },
   delivered: {
-    label: 'Delivered',
-    color: 'bg-emerald-50 text-emerald-600',
+    label: "Delivered",
+    color: "bg-emerald-50 text-emerald-600",
     icon: CheckCircle,
   },
   cancelled: {
-    label: 'Cancelled',
-    color: 'bg-red-50 text-red-500',
+    label: "Cancelled",
+    color: "bg-red-50 text-red-500",
     icon: XCircle,
   },
 };
@@ -112,7 +124,7 @@ const Skeleton = ({ className }) => (
 );
 
 // ─── Empty Chart State ────────────────────────────────────────────────────────
-const EmptyChart = ({ message = 'No data available' }) => (
+const EmptyChart = ({ message = "No data available" }) => (
   <div className="h-56 flex flex-col items-center justify-center text-dark-300">
     <TrendingUp size={32} className="mb-2 opacity-30" />
     <p className="text-sm">{message}</p>
@@ -134,20 +146,25 @@ const Dashboard = () => {
       setError(null);
       try {
         const [statsRes, ordersRes, revenueRes, stockRes] = await Promise.all([
-          API.get('/admin/stats'),
-          // FIX: Use params object instead of URL string
-          API.get('/admin/orders', { params: { limit: 6, sort: 'newest' } }),
-          API.get('/admin/revenue', { params: { period: '7days' } }),
-          API.get('/admin/products', { params: { lowStock: true, limit: 5 } }),
+          API.get("/admin/stats"),
+          API.get("/admin/orders", {
+            params: { limit: 6, sort: "newest" },
+          }),
+          API.get("/admin/revenue", {
+            params: { period: "7days" },
+          }),
+          API.get("/admin/products/low-stock", {
+            params: { limit: 5 },
+          }),
         ]);
 
-        setStats(statsRes.data);
+        setStats(statsRes.data.stats);
         setRecentOrders(ordersRes.data.orders || []);
         setRevenueData(revenueRes.data.chartData || []);
         setLowStockProducts(stockRes.data.products || []);
       } catch (err) {
-        console.error('Dashboard fetch error:', err);
-        setError('Failed to load dashboard data. Please refresh.');
+        console.error("Dashboard fetch error:", err);
+        setError("Failed to load dashboard data. Please refresh.");
       } finally {
         setLoading(false);
       }
@@ -159,35 +176,36 @@ const Dashboard = () => {
   const statCards = stats
     ? [
         {
-          title: 'Total Revenue',
+          title: "Total Revenue",
           // FIX: toFixed can crash if value is undefined — added safe fallback
-          value: stats.totalRevenue != null ? stats.totalRevenue.toFixed(2) : '0.00',
+          value:
+            stats.totalRevenue != null ? stats.totalRevenue.toFixed(2) : "0.00",
           change: stats.revenueChange ?? 0,
           icon: DollarSign,
           // FIX: Use inline bgColor instead of dynamic Tailwind class
-          bgColor: '#111827',
-          prefix: '$',
+          bgColor: "#111827",
+          prefix: "$",
         },
         {
-          title: 'Total Orders',
+          title: "Total Orders",
           value: stats.totalOrders ?? 0,
           change: stats.ordersChange ?? 0,
           icon: ShoppingBag,
-          bgColor: '#6366f1',
+          bgColor: "#6366f1",
         },
         {
-          title: 'Total Users',
+          title: "Total Users",
           value: stats.totalUsers ?? 0,
           change: stats.usersChange ?? 0,
           icon: Users,
-          bgColor: '#10b981',
+          bgColor: "#10b981",
         },
         {
-          title: 'Total Products',
+          title: "Total Products",
           value: stats.totalProducts ?? 0,
           change: stats.productsChange ?? 0,
           icon: Package,
-          bgColor: '#f59e0b',
+          bgColor: "#f59e0b",
         },
       ]
     : [];
@@ -204,21 +222,25 @@ const Dashboard = () => {
             Welcome back! Here's what's happening today.
           </p>
         </div>
-        <span className="text-xs text-dark-400 bg-gray-100 px-3 py-1.5
-          rounded-full w-fit">
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+        <span
+          className="text-xs text-dark-400 bg-gray-100 px-3 py-1.5
+          rounded-full w-fit"
+        >
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
           })}
         </span>
       </div>
 
       {/* ── Error Banner ── */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100
-          rounded-2xl text-sm text-red-600">
+        <div
+          className="flex items-center gap-3 p-4 bg-red-50 border border-red-100
+          rounded-2xl text-sm text-red-600"
+        >
           <AlertTriangle size={18} className="flex-shrink-0" />
           {error}
         </div>
@@ -230,17 +252,16 @@ const Dashboard = () => {
           ? Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-36" />
             ))
-          : statCards.map((card) => (
-              <StatCard key={card.title} {...card} />
-            ))}
+          : statCards.map((card) => <StatCard key={card.title} {...card} />)}
       </div>
 
       {/* ── Revenue Chart + Low Stock ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
         {/* Revenue Chart */}
-        <div className="xl:col-span-2 bg-white rounded-2xl p-6 shadow-sm
-          border border-gray-100">
+        <div
+          className="xl:col-span-2 bg-white rounded-2xl p-6 shadow-sm
+          border border-gray-100"
+        >
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="font-display font-bold text-dark-950">
@@ -248,10 +269,12 @@ const Dashboard = () => {
               </h2>
               <p className="text-xs text-dark-400 mt-0.5">Last 7 days</p>
             </div>
-            <div className="flex items-center gap-1.5 text-emerald-500
-              text-sm font-semibold">
+            <div
+              className="flex items-center gap-1.5 text-emerald-500
+              text-sm font-semibold"
+            >
               <TrendingUp size={16} />
-              {(stats?.revenueChange ?? 0) >= 0 ? '+' : ''}
+              {(stats?.revenueChange ?? 0) >= 0 ? "+" : ""}
               {stats?.revenueChange ?? 0}%
             </div>
           </div>
@@ -276,27 +299,27 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v) => `$${v}`}
                 />
                 <Tooltip
                   contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                    fontSize: '12px',
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                    fontSize: "12px",
                   }}
                   // FIX: Safe check before calling toFixed
                   formatter={(v) => [
-                    `$${typeof v === 'number' ? v.toFixed(2) : v}`,
-                    'Revenue',
+                    `$${typeof v === "number" ? v.toFixed(2) : v}`,
+                    "Revenue",
                   ]}
                 />
                 <Area
@@ -305,7 +328,7 @@ const Dashboard = () => {
                   stroke="#111827"
                   strokeWidth={2.5}
                   fill="url(#revGrad)"
-                  dot={{ fill: '#111827', r: 3 }}
+                  dot={{ fill: "#111827", r: 3 }}
                   activeDot={{ r: 5 }}
                 />
               </AreaChart>
@@ -348,14 +371,14 @@ const Dashboard = () => {
                 >
                   <img
                     src={
-                      product.image ||
-                      product.images?.[0] ||
-                      '/placeholder.png'
+                      product.image || product.images?.[0] || "/placeholder.png"
                     }
                     alt={product.name}
                     className="w-10 h-10 rounded-lg object-cover
                       bg-gray-100 flex-shrink-0"
-                    onError={(e) => { e.target.src = '/placeholder.png'; }}
+                    onError={(e) => {
+                      e.target.src = "/placeholder.png";
+                    }}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-dark-900 truncate">
@@ -366,9 +389,10 @@ const Dashboard = () => {
                   <span
                     className={`text-xs font-bold px-2 py-0.5 rounded-full
                       flex-shrink-0 whitespace-nowrap
-                      ${product.stock <= 3
-                        ? 'bg-red-50 text-red-500'
-                        : 'bg-amber-50 text-amber-600'
+                      ${
+                        product.stock <= 3
+                          ? "bg-red-50 text-red-500"
+                          : "bg-amber-50 text-amber-600"
                       }`}
                   >
                     {product.stock} left
@@ -388,10 +412,14 @@ const Dashboard = () => {
       </div>
 
       {/* ── Recent Orders ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100
-        overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-5
-          border-b border-gray-100">
+      <div
+        className="bg-white rounded-2xl shadow-sm border border-gray-100
+        overflow-hidden"
+      >
+        <div
+          className="flex items-center justify-between px-6 py-5
+          border-b border-gray-100"
+        >
           <h2 className="font-display font-bold text-dark-950">
             Recent Orders
           </h2>
@@ -416,12 +444,12 @@ const Dashboard = () => {
               <thead>
                 <tr className="bg-gray-50 text-left">
                   {[
-                    'Order ID',
-                    'Customer',
-                    'Date',
-                    'Items',
-                    'Total',
-                    'Status',
+                    "Order ID",
+                    "Customer",
+                    "Date",
+                    "Items",
+                    "Total",
+                    "Status",
                   ].map((h) => (
                     <th
                       key={h}
@@ -459,7 +487,7 @@ const Dashboard = () => {
                       <td className="px-6 py-4">
                         <div>
                           <p className="font-medium text-dark-900">
-                            {order.user?.name || 'Guest'}
+                            {order.user?.name || "Guest"}
                           </p>
                           <p className="text-xs text-dark-400">
                             {order.user?.email}
@@ -467,24 +495,21 @@ const Dashboard = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-dark-500 whitespace-nowrap">
-                        {new Date(order.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
+                        {new Date(order.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
                         })}
                       </td>
                       <td className="px-6 py-4 text-dark-500">
                         {order.items?.length || 0} item
-                        {order.items?.length !== 1 ? 's' : ''}
+                        {order.items?.length !== 1 ? "s" : ""}
                       </td>
                       <td className="px-6 py-4 font-semibold text-dark-950">
-                        {/* FIX: Support both totalAmount and totalPrice */}
-                        $
-                        {(
-                          order.totalAmount ??
-                          order.totalPrice ??
-                          0
-                        ).toFixed(2)}
+                        {/* FIX: Support both totalAmount and totalPrice */}$
+                        {(order.totalAmount ?? order.totalPrice ?? 0).toFixed(
+                          2,
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={order.status} />

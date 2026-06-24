@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -16,7 +16,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
+} from "recharts";
 import {
   DollarSign,
   ShoppingBag,
@@ -26,24 +26,24 @@ import {
   ArrowDownRight,
   Calendar,
   Package,
-} from 'lucide-react';
-import API from '../../api/axios';
+} from "lucide-react";
+import API from "../../api/axios";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PERIODS = [
-  { label: '7 Days', value: '7days' },
-  { label: '30 Days', value: '30days' },
-  { label: '3 Months', value: '3months' },
-  { label: '1 Year', value: '1year' },
+  { label: "7 Days", value: "7days" },
+  { label: "30 Days", value: "30days" },
+  { label: "3 Months", value: "3months" },
+  { label: "1 Year", value: "1year" },
 ];
 
 const PIE_COLORS = [
-  '#111827',
-  '#6366f1',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#8b5cf6',
+  "#111827",
+  "#6366f1",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
 ];
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ const SummaryCard = ({
   change,
   icon: Icon,
   bgColor,
-  prefix = '',
+  prefix = "",
 }) => {
   const isPositive = (change ?? 0) >= 0;
   return (
@@ -77,22 +77,23 @@ const SummaryCard = ({
         <span
           className={`flex items-center gap-1 text-xs font-semibold px-2
             py-0.5 rounded-full
-            ${isPositive
-              ? 'bg-emerald-50 text-emerald-600'
-              : 'bg-red-50 text-red-500'
+            ${
+              isPositive
+                ? "bg-emerald-50 text-emerald-600"
+                : "bg-red-50 text-red-500"
             }`}
         >
-          {isPositive
-            ? <ArrowUpRight size={11} />
-            : <ArrowDownRight size={11} />}
+          {isPositive ? (
+            <ArrowUpRight size={11} />
+          ) : (
+            <ArrowDownRight size={11} />
+          )}
           {Math.abs(change ?? 0)}%
         </span>
       </div>
       <p className="text-xl font-display font-bold text-dark-950 mt-3">
         {prefix}
-        {typeof value === 'number'
-          ? value.toLocaleString()
-          : (value ?? '—')}
+        {typeof value === "number" ? value.toLocaleString() : (value ?? "—")}
       </p>
       <p className="text-xs text-dark-400 mt-0.5">{title}</p>
     </motion.div>
@@ -101,35 +102,38 @@ const SummaryCard = ({
 
 // ─── Chart Card Wrapper ───────────────────────────────────────────────────────
 // FIX: removed unused className prop from original — now it actually applies it
-const ChartCard = ({ title, subtitle, children, loading, className = '' }) => (
+const ChartCard = ({ title, subtitle, children, loading, className = "" }) => (
   <div
     className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100
       ${className}`}
   >
     <div className="mb-5">
       <h3 className="font-display font-bold text-dark-950">{title}</h3>
-      {subtitle && (
-        <p className="text-xs text-dark-400 mt-0.5">{subtitle}</p>
-      )}
+      {subtitle && <p className="text-xs text-dark-400 mt-0.5">{subtitle}</p>}
     </div>
     {loading ? <Skeleton className="h-60 w-full" /> : children}
   </div>
 );
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
-const CustomTooltip = ({ active, payload, label, prefix = '$' }) => {
+const CustomTooltip = ({ active, payload, label, prefix = "₹" }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white rounded-xl shadow-xl border border-gray-100
-      p-3 text-xs">
+    <div
+      className="bg-white rounded-xl shadow-xl border border-gray-100
+      p-3 text-xs"
+    >
       <p className="font-semibold text-dark-700 mb-1.5">{label}</p>
       {payload.map((p) => (
         <p key={p.name} style={{ color: p.color }} className="font-medium">
-          {p.name}:{' '}
+          {p.name}:{" "}
           <span className="text-dark-900">
-            {p.name.toLowerCase().includes('revenue') ||
-            p.name.toLowerCase().includes('price')
-              ? `${prefix}${Number(p.value ?? 0).toFixed(2)}`
+            {p.name.toLowerCase().includes("revenue") ||
+            p.name.toLowerCase().includes("price")
+              ? `${prefix}${Number(p.value ?? 0).toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`
               : Number(p.value ?? 0).toLocaleString()}
           </span>
         </p>
@@ -139,9 +143,11 @@ const CustomTooltip = ({ active, payload, label, prefix = '$' }) => {
 };
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
-const EmptyState = ({ message = 'No data available for this period' }) => (
-  <div className="h-48 flex flex-col items-center justify-center
-    text-dark-300">
+const EmptyState = ({ message = "No data available for this period" }) => (
+  <div
+    className="h-48 flex flex-col items-center justify-center
+    text-dark-300"
+  >
     <Package size={32} className="mb-2 opacity-30" />
     <p className="text-sm">{message}</p>
   </div>
@@ -149,7 +155,7 @@ const EmptyState = ({ message = 'No data available for this period' }) => (
 
 // ─── Main Analytics Component ─────────────────────────────────────────────────
 const Analytics = () => {
-  const [period, setPeriod] = useState('7days');
+  const [period, setPeriod] = useState("7days");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -165,8 +171,8 @@ const Analytics = () => {
       setError(null);
       try {
         const [summaryRes, chartsRes] = await Promise.all([
-          API.get('/admin/analytics/summary', { params: { period } }),
-          API.get('/admin/analytics/charts', { params: { period } }),
+          API.get("/admin/analytics/summary", { params: { period } }),
+          API.get("/admin/analytics/charts", { params: { period } }),
         ]);
 
         setSummary(summaryRes.data);
@@ -176,8 +182,8 @@ const Analytics = () => {
         setTopProducts(chartsRes.data.topProducts || []);
         setUserGrowth(chartsRes.data.userGrowth || []);
       } catch (err) {
-        console.error('Analytics fetch error:', err);
-        setError('Failed to load analytics data.');
+        console.error("Analytics fetch error:", err);
+        setError("Failed to load analytics data.");
       } finally {
         setLoading(false);
       }
@@ -189,39 +195,41 @@ const Analytics = () => {
   const summaryCards = summary
     ? [
         {
-          title: 'Total Revenue',
+          title: "Total Revenue",
           // FIX: safe null check before toFixed
-          value: summary.totalRevenue != null
-            ? summary.totalRevenue.toFixed(2)
-            : '0.00',
+          value:
+            summary.totalRevenue != null
+              ? summary.totalRevenue.toFixed(2)
+              : "0.00",
           change: summary.revenueChange ?? 0,
           icon: DollarSign,
-          bgColor: '#111827',
-          prefix: '$',
+          bgColor: "#111827",
+          prefix: "₹",
         },
         {
-          title: 'Total Orders',
+          title: "Total Orders",
           value: summary.totalOrders ?? 0,
           change: summary.ordersChange ?? 0,
           icon: ShoppingBag,
-          bgColor: '#6366f1',
+          bgColor: "#6366f1",
         },
         {
-          title: 'New Users',
+          title: "New Users",
           value: summary.newUsers ?? 0,
           change: summary.usersChange ?? 0,
           icon: Users,
-          bgColor: '#10b981',
+          bgColor: "#10b981",
         },
         {
-          title: 'Avg. Order Value',
-          value: summary.avgOrderValue != null
-            ? summary.avgOrderValue.toFixed(2)
-            : '0.00',
+          title: "Avg. Order Value",
+          value:
+            summary.avgOrderValue != null
+              ? summary.avgOrderValue.toFixed(2)
+              : "0.00",
           change: summary.avgOrderChange ?? 0,
           icon: TrendingUp,
-          bgColor: '#f59e0b',
-          prefix: '$',
+          bgColor: "#f59e0b",
+          prefix: "₹",
         },
       ]
     : [];
@@ -229,8 +237,10 @@ const Analytics = () => {
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center
-        justify-between gap-4">
+      <div
+        className="flex flex-col sm:flex-row sm:items-center
+        justify-between gap-4"
+      >
         <div>
           <h1 className="text-2xl font-display font-bold text-dark-950">
             Analytics
@@ -252,9 +262,10 @@ const Analytics = () => {
               onClick={() => setPeriod(p.value)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold
                 transition-all duration-200
-                ${period === p.value
-                  ? 'bg-white text-dark-950 shadow-sm'
-                  : 'text-dark-400 hover:text-dark-700'
+                ${
+                  period === p.value
+                    ? "bg-white text-dark-950 shadow-sm"
+                    : "text-dark-400 hover:text-dark-700"
                 }`}
             >
               {p.label}
@@ -265,8 +276,10 @@ const Analytics = () => {
 
       {/* ── Error Banner ── */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl
-          text-sm text-red-600">
+        <div
+          className="p-4 bg-red-50 border border-red-100 rounded-2xl
+          text-sm text-red-600"
+        >
           {error}
         </div>
       )}
@@ -301,30 +314,22 @@ const Analytics = () => {
               >
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="#111827"
-                      stopOpacity={0.12}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="#111827"
-                      stopOpacity={0}
-                    />
+                    <stop offset="5%" stopColor="#111827" stopOpacity={0.12} />
+                    <stop offset="95%" stopColor="#111827" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(v) => `$${v}`}
+                  tickFormatter={(v) => `₹${v}`}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
@@ -335,7 +340,7 @@ const Analytics = () => {
                   strokeWidth={2.5}
                   fill="url(#areaGrad)"
                   dot={false}
-                  activeDot={{ r: 4, fill: '#111827' }}
+                  activeDot={{ r: 4, fill: "#111827" }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -363,19 +368,19 @@ const Analytics = () => {
                 />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
                   allowDecimals={false}
                 />
                 <Tooltip
                   content={<CustomTooltip prefix="" />}
-                  cursor={{ fill: '#f9fafb' }}
+                  cursor={{ fill: "#f9fafb" }}
                 />
                 <Bar
                   dataKey="orders"
@@ -391,7 +396,6 @@ const Analytics = () => {
 
       {/* ── Category Breakdown + User Growth ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
         {/* Category Pie Chart */}
         <ChartCard
           title="Sales by Category"
@@ -423,14 +427,14 @@ const Analytics = () => {
                   <Tooltip
                     // FIX: safe check — v could be undefined
                     formatter={(v, n) => [
-                      `$${typeof v === 'number' ? v.toFixed(2) : '0.00'}`,
+                      `₹${typeof v === "number" ? v.toFixed(2) : "0.00"}`,
                       n,
                     ]}
                     contentStyle={{
-                      borderRadius: '12px',
-                      border: 'none',
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                      fontSize: '11px',
+                      borderRadius: "12px",
+                      border: "none",
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                      fontSize: "11px",
                     }}
                   />
                 </PieChart>
@@ -474,19 +478,19 @@ const Analytics = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
                   axisLine={false}
                   tickLine={false}
                   allowDecimals={false}
                 />
                 <Tooltip content={<CustomTooltip prefix="" />} />
                 <Legend
-                  wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }}
+                  wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }}
                 />
                 <Line
                   type="monotone"
@@ -514,12 +518,12 @@ const Analytics = () => {
       </div>
 
       {/* ── Top Products Table ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100
-        overflow-hidden">
+      <div
+        className="bg-white rounded-2xl shadow-sm border border-gray-100
+        overflow-hidden"
+      >
         <div className="px-6 py-5 border-b border-gray-100">
-          <h3 className="font-display font-bold text-dark-950">
-            Top Products
-          </h3>
+          <h3 className="font-display font-bold text-dark-950">Top Products</h3>
           <p className="text-xs text-dark-400 mt-0.5">
             Best performing products by revenue
           </p>
@@ -537,12 +541,12 @@ const Analytics = () => {
               <thead>
                 <tr className="bg-gray-50">
                   {[
-                    '#',
-                    'Product',
-                    'Category',
-                    'Units Sold',
-                    'Revenue',
-                    'Growth',
+                    "#",
+                    "Product",
+                    "Category",
+                    "Units Sold",
+                    "Revenue",
+                    "Growth",
                   ].map((h) => (
                     <th
                       key={h}
@@ -579,13 +583,13 @@ const Analytics = () => {
                             src={
                               product.image ||
                               product.images?.[0] ||
-                              '/placeholder.png'
+                              "/placeholder.png"
                             }
                             alt={product.name}
                             className="w-10 h-10 rounded-lg object-cover
                               bg-gray-100 flex-shrink-0"
                             onError={(e) => {
-                              e.target.src = '/placeholder.png';
+                              e.target.src = "/placeholder.png";
                             }}
                           />
                           <div>
@@ -599,28 +603,30 @@ const Analytics = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 bg-gray-100 text-dark-600
-                          rounded-full text-xs font-medium">
+                        <span
+                          className="px-2.5 py-1 bg-gray-100 text-dark-600
+                          rounded-full text-xs font-medium"
+                        >
                           {product.category}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-medium text-dark-700">
-                        {product.unitsSold?.toLocaleString() ?? '0'}
+                        {product.unitsSold?.toLocaleString() ?? "0"}
                       </td>
                       <td className="px-6 py-4 font-semibold text-dark-950">
-                        {/* FIX: safe check before toFixed */}
-                        $
-                        {typeof product.revenue === 'number'
+                        {/* FIX: safe check before toFixed */}₹
+                        {typeof product.revenue === "number"
                           ? product.revenue.toFixed(2)
-                          : '0.00'}
+                          : "0.00"}
                       </td>
                       <td className="px-6 py-4">
                         <span
                           className={`flex items-center gap-1 text-xs
                             font-semibold w-fit
-                            ${(product.growth ?? 0) >= 0
-                              ? 'text-emerald-600'
-                              : 'text-red-500'
+                            ${
+                              (product.growth ?? 0) >= 0
+                                ? "text-emerald-600"
+                                : "text-red-500"
                             }`}
                         >
                           {(product.growth ?? 0) >= 0 ? (

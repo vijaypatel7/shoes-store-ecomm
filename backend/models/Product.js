@@ -13,6 +13,11 @@ const productSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
     },
+    gender: {
+  type: String,
+  enum: ['Men', 'Women', 'Unisex', 'Kids'],
+  default: 'Unisex'
+},
     description: {
       type: String,
       required: [true, 'Description is required'],

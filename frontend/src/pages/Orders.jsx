@@ -84,9 +84,9 @@ const OrderCard = ({ order }) => {
                       cursor-pointer"
                     onClick={() => navigate(`/product/${item.product?._id}`)}
                   >
-                    {item.product?.images?.[0] || '' ? (
+                    {item.product?.images?.[0] || "" ? (
                       <img
-                        src={item.product.images[0]}
+                        src={item.product.images[0]?.url}
                         alt={item.product.name}
                         className="w-full h-full object-cover"
                       />
@@ -138,7 +138,15 @@ const OrderCard = ({ order }) => {
                 {/* Price Breakdown */}
                 <div className="flex justify-between text-sm text-dark-500">
                   <span>Subtotal</span>
-                  <span>₹{order.subtotal?.toLocaleString("en-IN") || "—"}</span>
+                  <span>
+                    ₹
+                    {(order.items || [])
+                      .reduce(
+                        (acc, item) => acc + item.price * item.quantity,
+                        0,
+                      )
+                      .toLocaleString("en-IN")}
+                  </span>
                 </div>
                 {order.discount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
@@ -149,9 +157,11 @@ const OrderCard = ({ order }) => {
                 <div className="flex justify-between text-sm text-dark-500">
                   <span>Shipping</span>
                   <span>
-                    {order.shippingCost === 0
-                      ? "Free"
-                      : `₹${order.shippingCost?.toLocaleString("en-IN")}`}
+                    {order.shippingCost === undefined
+                      ? "—"
+                      : order.shippingCost === 0
+                        ? "Free"
+                        : `₹${order.shippingCost.toLocaleString("en-IN")}`}
                   </span>
                 </div>
                 <div className="flex justify-between font-bold text-dark-900 pt-1 border-t">
@@ -222,7 +232,12 @@ const Orders = () => {
   };
 
   const filteredOrders =
-    filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  filter === "all"
+    ? orders
+    : orders.filter((o) =>
+        o.status === filter ||
+        (filter === "pending" && o.status === "confirmed")
+      );
 
   return (
     <div className="min-h-screen bg-gray-50/50">

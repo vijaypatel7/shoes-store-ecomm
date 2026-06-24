@@ -138,7 +138,7 @@ const CartSummary = ({ showCheckout = true }) => {
               
               {item.product.images?.[0] ? (
                 <img
-                  src={item.product.images[0]}
+                  src={item.product.images[0]?.url}
                   alt={item.product.name}
                   className="w-full h-full object-cover"
                 />

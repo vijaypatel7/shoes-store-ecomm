@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Search,
@@ -15,25 +15,40 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
-} from 'lucide-react';
-import API from '../../api/axios';
-import toast from 'react-hot-toast';
+} from "lucide-react";
+import API from "../../api/axios";
+import toast from "react-hot-toast";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const CATEGORIES = ['Running', 'Basketball', 'Casual', 'Training', 'Lifestyle', 'Sneakers'];
-const BRANDS = ['Nike', 'Adidas', 'Puma', 'New Balance', 'Reebok', 'Converse', 'Vans'];
+const CATEGORIES = [
+  "Running",
+  "Basketball",
+  "Casual",
+  "Training",
+  "Lifestyle",
+  "Sneakers",
+];
+const BRANDS = [
+  "Nike",
+  "Adidas",
+  "Puma",
+  "New Balance",
+  "Reebok",
+  "Converse",
+  "Vans",
+];
 const SIZES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13];
 
 const EMPTY_FORM = {
-  name: '',
-  brand: '',
-  category: '',
-  price: '',
-  discount: '',
-  description: '',
+  name: "",
+  brand: "",
+  category: "",
+  price: "",
+  discount: "",
+  description: "",
   sizes: [],
   colors: [],
-  stock: '',
+  stock: "",
   isNew: false,
   isBestseller: false,
   isFeatured: false,
@@ -84,11 +99,13 @@ const DeleteConfirmModal = ({ product, onConfirm, onCancel, loading }) => (
           </div>
           <div>
             <h3 className="font-bold text-dark-950">Delete Product</h3>
-            <p className="text-xs text-dark-400">This action cannot be undone</p>
+            <p className="text-xs text-dark-400">
+              This action cannot be undone
+            </p>
           </div>
         </div>
         <p className="text-sm text-dark-600 mb-6">
-          Are you sure you want to delete{' '}
+          Are you sure you want to delete{" "}
           <span className="font-semibold text-dark-900">"{product.name}"</span>?
         </p>
         <div className="flex gap-3">
@@ -120,47 +137,51 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
   const [form, setForm] = useState(
     product
       ? {
-          name: product.name || '',
-          brand: product.brand || '',
-          category: product.category || '',
-          price: product.price || '',
-          discount: product.discount || '',
-          description: product.description || '',
+          name: product.name || "",
+          brand: product.brand || "",
+          category: product.category || "",
+          price: product.price || "",
+          discount: product.discount || "",
+          description: product.description || "",
           sizes: product.sizes || [],
-          colors: product.colors || [],
-          stock: product.stock || '',
+          colors: (product.colors || []).map((c) =>
+            typeof c === "string" ? c : c.name,
+          ),
+          stock: product.stock || "",
           isNew: product.isNew || false,
           isBestseller: product.isBestseller || false,
           isFeatured: product.isFeatured || false,
         }
-      : EMPTY_FORM
+      : EMPTY_FORM,
   );
   const [images, setImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState(product?.images || []);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [colorInput, setColorInput] = useState('');
+  const [colorInput, setColorInput] = useState("");
   const fileInputRef = useRef(null);
 
   // Prevent body scroll
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length + previewUrls.length > 5) {
-      toast.error('Maximum 5 images allowed');
+      toast.error("Maximum 5 images allowed");
       return;
     }
     setImages((prev) => [...prev, ...files]);
@@ -190,11 +211,11 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
     const trimmed = colorInput.trim();
     if (!trimmed) return;
     if (form.colors.includes(trimmed)) {
-      toast.error('Color already added');
+      toast.error("Color already added");
       return;
     }
     setForm((prev) => ({ ...prev, colors: [...prev.colors, trimmed] }));
-    setColorInput('');
+    setColorInput("");
   };
 
   const removeColor = (color) => {
@@ -206,16 +227,22 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = 'Product name is required';
-    if (!form.brand) errs.brand = 'Brand is required';
-    if (!form.category) errs.category = 'Category is required';
+    if (!form.name.trim()) errs.name = "Product name is required";
+    if (!form.brand) errs.brand = "Brand is required";
+    if (!form.category) errs.category = "Category is required";
     if (!form.price || isNaN(form.price) || Number(form.price) <= 0)
-      errs.price = 'Valid price is required';
-    if (form.discount && (isNaN(form.discount) || Number(form.discount) < 0 || Number(form.discount) > 100))
-      errs.discount = 'Discount must be between 0 and 100';
-    if (!form.description.trim()) errs.description = 'Description is required';
-    if (form.sizes.length === 0) errs.sizes = 'Select at least one size';
-    if (!product && previewUrls.length === 0) errs.images = 'At least one image is required';
+      errs.price = "Valid price is required";
+    if (
+      form.discount &&
+      (isNaN(form.discount) ||
+        Number(form.discount) < 0 ||
+        Number(form.discount) > 100)
+    )
+      errs.discount = "Discount must be between 0 and 100";
+    if (!form.description.trim()) errs.description = "Description is required";
+    if (form.sizes.length === 0) errs.sizes = "Select at least one size";
+    if (!product && previewUrls.length === 0)
+      errs.images = "At least one image is required";
     return errs;
   };
 
@@ -224,7 +251,7 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
-      toast.error('Please fix the errors below');
+      toast.error("Please fix the errors below");
       return;
     }
 
@@ -238,24 +265,25 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
           formData.append(key, value);
         }
       });
-      images.forEach((img) => formData.append('images', img));
+      images.forEach((img) => formData.append("images", img));
 
       let response;
       if (product) {
         response = await API.put(`/admin/products/${product._id}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success('Product updated successfully');
+        toast.success("Product updated successfully");
       } else {
-        response = await API.post('/admin/products', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+        response = await API.post("/admin/products", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success('Product created successfully');
+        toast.success("Product created successfully");
       }
-      onSave(response.data.product);
+      console.log("CREATE RESPONSE:", response.data);
+onSave(response.data.product);
       onClose();
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to save product');
+      toast.error(err?.response?.data?.message || "Failed to save product");
     } finally {
       setSaving(false);
     }
@@ -275,7 +303,7 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+          transition={{ type: "spring", damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
           className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh]
             overflow-hidden flex flex-col"
@@ -284,10 +312,12 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
           <div className="flex items-center justify-between px-6 py-5 border-b">
             <div>
               <h2 className="font-display font-bold text-dark-950 text-lg">
-                {product ? 'Edit Product' : 'Add New Product'}
+                {product ? "Edit Product" : "Add New Product"}
               </h2>
               <p className="text-xs text-dark-400 mt-0.5">
-                {product ? 'Update product details' : 'Fill in product information'}
+                {product
+                  ? "Update product details"
+                  : "Fill in product information"}
               </p>
             </div>
             <button
@@ -331,8 +361,10 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
                       <X size={16} className="text-white" />
                     </button>
                     {idx === 0 && (
-                      <span className="absolute bottom-0 left-0 right-0 bg-dark-950/80
-                        text-white text-[9px] text-center py-0.5">
+                      <span
+                        className="absolute bottom-0 left-0 right-0 bg-dark-950/80
+                        text-white text-[9px] text-center py-0.5"
+                      >
                         Main
                       </span>
                     )}
@@ -361,7 +393,8 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
               </div>
               <p className="text-xs text-dark-400 mt-1.5">
                 <ImageIcon size={11} className="inline mr-1" />
-                Upload up to 5 images. First image will be the main product image.
+                Upload up to 5 images. First image will be the main product
+                image.
               </p>
             </FormField>
 
@@ -479,7 +512,11 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
             </FormField>
 
             {/* Sizes */}
-            <FormField label="Available Sizes (US)" error={errors.sizes} required>
+            <FormField
+              label="Available Sizes (US)"
+              error={errors.sizes}
+              required
+            >
               <div className="flex flex-wrap gap-2">
                 {SIZES.map((size) => (
                   <button
@@ -488,9 +525,10 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
                     onClick={() => toggleSize(size)}
                     className={`min-w-[42px] h-9 px-2 rounded-xl border text-xs
                       font-medium transition-all duration-150
-                      ${form.sizes.includes(size)
-                        ? 'bg-dark-950 text-white border-dark-950 shadow-sm'
-                        : 'border-gray-200 text-dark-600 hover:border-dark-400'
+                      ${
+                        form.sizes.includes(size)
+                          ? "bg-dark-950 text-white border-dark-950 shadow-sm"
+                          : "border-gray-200 text-dark-600 hover:border-dark-400"
                       }`}
                   >
                     {size}
@@ -499,7 +537,7 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
               </div>
               {form.sizes.length > 0 && (
                 <p className="text-xs text-dark-400 mt-1.5">
-                  Selected: {form.sizes.join(', ')}
+                  Selected: {form.sizes.join(", ")}
                 </p>
               )}
             </FormField>
@@ -511,7 +549,7 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
                   value={colorInput}
                   onChange={(e) => setColorInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       addColor();
                     }
@@ -531,34 +569,34 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
                 </button>
               </div>
               {form.colors.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {form.colors.map((color) => (
-                    <span
-                      key={color}
-                      className="flex items-center gap-1.5 px-3 py-1 bg-gray-100
-                        text-dark-700 rounded-full text-xs font-medium"
-                    >
-                      {color}
-                      <button
-                        type="button"
-                        onClick={() => removeColor(color)}
-                        className="hover:text-red-500 transition-colors"
-                      >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
+  <div className="flex flex-wrap gap-2">
+    {form.colors.map((color, index) => (
+      <span
+        key={`${color}-${index}`}
+        className="flex items-center gap-1.5 px-3 py-1 bg-gray-100
+          text-dark-700 rounded-full text-xs font-medium"
+      >
+        {color}
+        <button
+          type="button"
+          onClick={() => removeColor(color)}
+          className="hover:text-red-500 transition-colors"
+        >
+          <X size={11} />
+        </button>
+      </span>
+    ))}
+  </div>
+)}
             </FormField>
 
             {/* Flags */}
             <FormField label="Product Labels">
               <div className="flex flex-wrap gap-4">
                 {[
-                  { name: 'isNew', label: 'New Arrival' },
-                  { name: 'isBestseller', label: 'Bestseller' },
-                  { name: 'isFeatured', label: 'Featured' },
+                  { name: "isNew", label: "New Arrival" },
+                  { name: "isBestseller", label: "Bestseller" },
+                  { name: "isFeatured", label: "Featured" },
                 ].map(({ name, label }) => (
                   <label
                     key={name}
@@ -567,9 +605,10 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
                     <div
                       className={`w-5 h-5 rounded-md border-2 flex items-center
                         justify-center transition-all duration-150
-                        ${form[name]
-                          ? 'bg-dark-950 border-dark-950'
-                          : 'border-gray-300 group-hover:border-dark-400'
+                        ${
+                          form[name]
+                            ? "bg-dark-950 border-dark-950"
+                            : "border-gray-300 group-hover:border-dark-400"
                         }`}
                       onClick={() =>
                         setForm((prev) => ({ ...prev, [name]: !prev[name] }))
@@ -586,15 +625,17 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
             {/* Preview price */}
             {form.price && (
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs font-semibold text-dark-400 uppercase
-                  tracking-wider mb-2">
+                <p
+                  className="text-xs font-semibold text-dark-400 uppercase
+                  tracking-wider mb-2"
+                >
                   Price Preview
                 </p>
                 <div className="flex items-baseline gap-3">
                   {form.discount > 0 ? (
                     <>
                       <span className="text-xl font-bold text-dark-950">
-                        $
+                        ₹
                         {(
                           Number(form.price) -
                           (Number(form.price) * Number(form.discount)) / 100
@@ -609,7 +650,7 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
                     </>
                   ) : (
                     <span className="text-xl font-bold text-dark-950">
-                      ${Number(form.price).toFixed(2)}
+                      ₹{Number(form.price).toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -635,7 +676,7 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
                 disabled:opacity-60 flex items-center gap-2"
             >
               {saving && <RefreshCw size={14} className="animate-spin" />}
-              {product ? 'Save Changes' : 'Create Product'}
+              {product ? "Save Changes" : "Create Product"}
             </button>
           </div>
         </motion.div>
@@ -643,14 +684,26 @@ const ProductFormModal = ({ product, onClose, onSave }) => {
     </AnimatePresence>
   );
 };
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+const getImageUrl = (url) => {
+  if (!url) return "/placeholder.png";
+
+  if (url.startsWith("http")) {
+    return url;
+  }
+
+  return `http://localhost:5001${url}`;
+};
+
 
 // ─── Main ProductManager ──────────────────────────────────────────────────────
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
@@ -659,25 +712,29 @@ const ProductManager = () => {
   const [categoryOpen, setCategoryOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await API.get('/admin/products', {
-        params: {
-          page,
-          limit: 10,
-          search: search || undefined,
-          category: categoryFilter || undefined,
-        },
-      });
-      setProducts(data.products || []);
-      setPagination(data.pagination || {});
-    } catch {
-      toast.error('Failed to fetch products');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, categoryFilter]);
+  setLoading(true);
 
+  try {
+    const { data } = await API.get("/admin/products", {
+      params: {
+        page,
+        limit: 10,
+        search: search || undefined,
+        category: categoryFilter || undefined,
+      },
+    });
+
+    console.log("Products API Response:", data);
+
+    setProducts(data.products || []);
+    setPagination(data.pagination || {});
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to fetch products");
+  } finally {
+    setLoading(false);
+  }
+}, [page, search, categoryFilter]);
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
@@ -686,15 +743,35 @@ const ProductManager = () => {
     setPage(1);
   }, [search, categoryFilter]);
 
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts, page]);
+
   const handleSave = (savedProduct) => {
-    setProducts((prev) => {
-      const exists = prev.find((p) => p._id === savedProduct._id);
-      if (exists) {
-        return prev.map((p) => (p._id === savedProduct._id ? savedProduct : p));
-      }
-      return [savedProduct, ...prev];
-    });
-  };
+  console.log("savedProduct", savedProduct);
+
+  if (!savedProduct || !savedProduct._id) {
+    toast.error("Invalid product returned from server");
+    fetchProducts();
+    return;
+  }
+
+  setProducts((prev) => {
+    const exists = prev.find(
+      (p) => p && p._id === savedProduct._id
+    );
+
+    if (exists) {
+      return prev.map((p) =>
+        p && p._id === savedProduct._id
+          ? savedProduct
+          : p
+      );
+    }
+
+    return [savedProduct, ...prev];
+  });
+};
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -702,10 +779,10 @@ const ProductManager = () => {
     try {
       await API.delete(`/admin/products/${deleteTarget._id}`);
       setProducts((prev) => prev.filter((p) => p._id !== deleteTarget._id));
-      toast.success('Product deleted successfully');
+      toast.success("Product deleted successfully");
       setDeleteTarget(null);
     } catch {
-      toast.error('Failed to delete product');
+      toast.error("Failed to delete product");
     } finally {
       setDeleteLoading(false);
     }
@@ -767,10 +844,10 @@ const ProductManager = () => {
                 text-sm font-medium hover:border-dark-300 transition-colors
                 bg-white whitespace-nowrap"
             >
-              {categoryFilter || 'All Categories'}
+              {categoryFilter || "All Categories"}
               <ChevronDown
                 size={14}
-                className={`transition-transform ${categoryOpen ? 'rotate-180' : ''}`}
+                className={`transition-transform ${categoryOpen ? "rotate-180" : ""}`}
               />
             </button>
             <AnimatePresence>
@@ -784,12 +861,12 @@ const ProductManager = () => {
                 >
                   <button
                     onClick={() => {
-                      setCategoryFilter('');
+                      setCategoryFilter("");
                       setCategoryOpen(false);
                     }}
                     className={`w-full text-left px-4 py-2 text-sm transition-colors
                       hover:bg-gray-50
-                      ${!categoryFilter ? 'font-semibold text-dark-950' : 'text-dark-600'}`}
+                      ${!categoryFilter ? "font-semibold text-dark-950" : "text-dark-600"}`}
                   >
                     All Categories
                   </button>
@@ -802,9 +879,10 @@ const ProductManager = () => {
                       }}
                       className={`w-full text-left px-4 py-2 text-sm transition-colors
                         hover:bg-gray-50
-                        ${categoryFilter === cat
-                          ? 'font-semibold text-dark-950'
-                          : 'text-dark-600'
+                        ${
+                          categoryFilter === cat
+                            ? "font-semibold text-dark-950"
+                            : "text-dark-600"
                         }`}
                     >
                       {cat}
@@ -822,14 +900,16 @@ const ProductManager = () => {
               text-dark-400 flex-shrink-0"
             aria-label="Refresh"
           >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm
-        overflow-hidden">
+      <div
+        className="bg-white rounded-2xl border border-gray-100 shadow-sm
+        overflow-hidden"
+      >
         {loading ? (
           <div className="p-6 space-y-4">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -842,13 +922,13 @@ const ProductManager = () => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {[
-                    'Product',
-                    'Brand',
-                    'Category',
-                    'Price',
-                    'Stock',
-                    'Status',
-                    'Actions',
+                    "Product",
+                    "Brand",
+                    "Category",
+                    "Price",
+                    "Stock",
+                    "Status",
+                    "Actions",
                   ].map((h) => (
                     <th
                       key={h}
@@ -867,10 +947,7 @@ const ProductManager = () => {
                       colSpan={7}
                       className="text-center py-14 text-dark-400 text-sm"
                     >
-                      <Package
-                        size={32}
-                        className="mx-auto mb-3 opacity-30"
-                      />
+                      <Package size={32} className="mx-auto mb-3 opacity-30" />
                       No products found
                     </td>
                   </tr>
@@ -892,37 +969,43 @@ const ProductManager = () => {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <img
-                              src={
-                                product.images?.[0] ||
-                                product.image ||
-                                '/placeholder.png'
-                              }
-                              alt={product.name}
-                              className="w-12 h-12 rounded-xl object-cover
-                                bg-gray-100 flex-shrink-0"
-                            />
+  src={getImageUrl(product.images?.[0]?.url)}
+  alt={product.name}
+  className="w-12 h-12 rounded-xl object-cover bg-gray-100 flex-shrink-0"
+  onError={(e) => {
+    e.target.src = "/placeholder.png";
+  }}
+/>
                             <div className="min-w-0">
-                              <p className="font-medium text-dark-900 truncate
-                                max-w-[180px]">
+                              <p
+                                className="font-medium text-dark-900 truncate
+                                max-w-[180px]"
+                              >
                                 {product.name}
                               </p>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 {product.isNew && (
-                                  <span className="text-[9px] font-bold px-1.5
+                                  <span
+                                    className="text-[9px] font-bold px-1.5
                                     py-0.5 bg-emerald-50 text-emerald-600
-                                    rounded-full">
+                                    rounded-full"
+                                  >
                                     NEW
                                   </span>
                                 )}
                                 {product.isBestseller && (
-                                  <span className="text-[9px] font-bold px-1.5
-                                    py-0.5 bg-amber-50 text-amber-600 rounded-full">
+                                  <span
+                                    className="text-[9px] font-bold px-1.5
+                                    py-0.5 bg-amber-50 text-amber-600 rounded-full"
+                                  >
                                     BESTSELLER
                                   </span>
                                 )}
                                 {product.isFeatured && (
-                                  <span className="text-[9px] font-bold px-1.5
-                                    py-0.5 bg-indigo-50 text-indigo-600 rounded-full">
+                                  <span
+                                    className="text-[9px] font-bold px-1.5
+                                    py-0.5 bg-indigo-50 text-indigo-600 rounded-full"
+                                  >
                                     FEATURED
                                   </span>
                                 )}
@@ -936,8 +1019,10 @@ const ProductManager = () => {
                         </td>
                         {/* Category */}
                         <td className="px-5 py-4">
-                          <span className="px-2.5 py-1 bg-gray-100 text-dark-600
-                            rounded-full text-xs font-medium">
+                          <span
+                            className="px-2.5 py-1 bg-gray-100 text-dark-600
+                            rounded-full text-xs font-medium"
+                          >
                             {product.category}
                           </span>
                         </td>
@@ -945,7 +1030,8 @@ const ProductManager = () => {
                         <td className="px-5 py-4">
                           <div className="flex flex-col">
                             <span className="font-semibold text-dark-950">
-                              ${discountedPrice
+                              $
+                              {discountedPrice
                                 ? discountedPrice.toFixed(2)
                                 : product.price?.toFixed(2)}
                             </span>
@@ -960,14 +1046,15 @@ const ProductManager = () => {
                         <td className="px-5 py-4">
                           <span
                             className={`font-semibold text-sm
-                              ${(product.stock ?? 0) === 0
-                                ? 'text-red-500'
-                                : (product.stock ?? 0) <= 5
-                                  ? 'text-amber-500'
-                                  : 'text-dark-700'
+                              ${
+                                (product.totalStock ?? 0) === 0
+                                  ? "text-red-500"
+                                  : (product.totalStock ?? 0) <= 5
+                                    ? "text-amber-500"
+                                    : "text-dark-700"
                               }`}
                           >
-                            {product.stock ?? 0}
+                            {product.totalStock ?? 0}
                           </span>
                         </td>
                         {/* Status */}
@@ -975,14 +1062,15 @@ const ProductManager = () => {
                           <span
                             className={`inline-flex px-2.5 py-1 rounded-full text-xs
                               font-semibold
-                              ${(product.stock ?? 0) === 0
-                                ? 'bg-red-50 text-red-500'
-                                : 'bg-emerald-50 text-emerald-600'
+                              ${
+                                (product.totalStock ?? 0) === 0
+                                  ? "bg-red-50 text-red-500"
+                                  : "bg-emerald-50 text-emerald-600"
                               }`}
                           >
-                            {(product.stock ?? 0) === 0
-                              ? 'Out of Stock'
-                              : 'In Stock'}
+                            {(product.totalStock ?? 0) === 0
+                              ? "Out of Stock"
+                              : "In Stock"}
                           </span>
                         </td>
                         {/* Actions */}
@@ -1020,10 +1108,12 @@ const ProductManager = () => {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t
-            border-gray-100">
+          <div
+            className="flex items-center justify-between px-6 py-4 border-t
+            border-gray-100"
+          >
             <p className="text-xs text-dark-400">
-              Page {page} of {totalPages} ·{' '}
+              Page {page} of {totalPages} ·{" "}
               <span className="font-medium">{pagination.total}</span> products
             </p>
             <div className="flex items-center gap-1.5">
@@ -1050,9 +1140,10 @@ const ProductManager = () => {
                     onClick={() => setPage(pageNum)}
                     className={`w-8 h-8 rounded-lg text-xs font-semibold
                       transition-colors
-                      ${page === pageNum
-                        ? 'bg-dark-950 text-white'
-                        : 'border hover:bg-gray-50 text-dark-600'
+                      ${
+                        page === pageNum
+                          ? "bg-dark-950 text-white"
+                          : "border hover:bg-gray-50 text-dark-600"
                       }`}
                   >
                     {pageNum}

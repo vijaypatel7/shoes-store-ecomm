@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import dotenv from 'dotenv';
+import path from "path";
+
 
 import connectDB from './config/db.js';
 import passportConfig from './config/passport.js';
@@ -34,6 +36,13 @@ app.use(
     credentials: true,
   })
 );
+
+
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"))
+);
+
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

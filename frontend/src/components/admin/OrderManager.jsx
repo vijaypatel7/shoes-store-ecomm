@@ -36,6 +36,12 @@ const statusConfig = {
     icon: Clock,
     next: "processing",
   },
+  confirmed: {
+    label: "Confirmed",
+    color: "bg-green-50 text-green-600 border-green-200",
+    icon: CheckCircle,
+    next: "processing",
+  },
   processing: {
     label: "Processing",
     color: "bg-blue-50 text-blue-600 border-blue-200",
@@ -90,9 +96,7 @@ const OrderDetailModal = ({ order, onClose, onStatusUpdate }) => {
     if (newStatus === order.status) return;
     setUpdating(true);
     try {
-      await API.patch(`/admin/orders/${order._id}/status`, {
-        status: newStatus,
-      });
+      await API.put(`/admin/orders/${order._id}/status`, { status: newStatus });
       onStatusUpdate(order._id, newStatus);
       toast.success(`Order status updated to ${newStatus}`);
       onClose();
@@ -214,7 +218,7 @@ const OrderDetailModal = ({ order, onClose, onStatusUpdate }) => {
                     <img
                       src={
                         item.product?.image ||
-                        item.product?.images?.[0] ||
+                        item.product?.images?.[0]?.url ||
                         "/placeholder.png"
                       }
                       alt={item.product?.name}
@@ -249,46 +253,39 @@ const OrderDetailModal = ({ order, onClose, onStatusUpdate }) => {
                       </div>
                     </div>
                     <p className="text-sm font-semibold text-dark-950 flex-shrink-0">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {(item.price * item.quantity).toFixed(2)}
                     </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Price Summary */}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <p
-                className="text-xs font-semibold text-dark-400 uppercase
-                tracking-wider mb-3"
-              >
+            <div className="bg-gray-50 rounded-xl p-4">
+              <p className="text-xs font-semibold text-dark-400 uppercase tracking-wider mb-3">
                 Price Summary
               </p>
-              <div className="flex justify-between text-sm text-dark-600">
-                <span>Subtotal</span>
-                <span>${order.subtotal?.toFixed(2) || "0.00"}</span>
-              </div>
-              <div className="flex justify-between text-sm text-dark-600">
-                <span>Shipping</span>
-                <span>
-                  {order.shippingCost === 0
-                    ? "Free"
-                    : `$${order.shippingCost?.toFixed(2)}`}
-                </span>
-              </div>
-              {order.discount > 0 && (
-                <div className="flex justify-between text-sm text-emerald-600">
-                  <span>Discount</span>
-                  <span>-${order.discount?.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="h-px bg-gray-200 my-2" />
+
               <div className="flex justify-between text-base font-bold text-dark-950">
-                <span>Total</span>
-                <span>${order.totalPrice?.toFixed(2)}</span>
+                <span>Total Amount</span>
+                <span>₹{(order.totalAmount || 0).toLocaleString("en-IN")}</span>
+              </div>
+
+              <div className="mt-3 text-sm text-dark-500">
+                <div className="flex justify-between">
+                  <span>Payment Status</span>
+                  <span className="capitalize">
+                    {order.paymentStatus || "pending"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between mt-1">
+                  <span>Payment Method</span>
+                  <span className="uppercase">
+                    {order.paymentMethod || "N/A"}
+                  </span>
+                </div>
               </div>
             </div>
-
             {/* Status Update */}
             <div>
               <p
@@ -632,19 +629,17 @@ const OrderManager = () => {
                         className="px-5 py-4 font-semibold text-dark-950
                         whitespace-nowrap"
                       >
-                        ${order.totalPrice?.toFixed(2)}
+                        ₹{(order.totalAmount || 0).toLocaleString("en-IN")}
                       </td>
                       <td className="px-5 py-4">
                         <span
-                          className={`inline-flex px-2.5 py-1 rounded-full text-xs
-                            font-semibold
-                            ${
-                              order.isPaid
-                                ? "bg-emerald-50 text-emerald-600"
-                                : "bg-red-50 text-red-500"
-                            }`}
+                          className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            order.paymentStatus === "paid"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-red-50 text-red-500"
+                          }`}
                         >
-                          {order.isPaid ? "Paid" : "Unpaid"}
+                          {order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
                         </span>
                       </td>
                       <td className="px-5 py-4">
