@@ -70,7 +70,7 @@ app.use('/api/users', userRoutes);
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: 100000,
   standardHeaders: true,
 });
 app.use('/api/', limiter);
