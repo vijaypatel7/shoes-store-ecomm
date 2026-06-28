@@ -5,38 +5,150 @@ import mongoose from "mongoose";
 
 export const getDashboardStats = async (req, res) => {
   try {
-    console.log("Dashboard stats called");
+    const today = new Date();
 
-    const [totalUsers, totalProducts, totalOrders, revenueResult] =
-      await Promise.all([
-        User.countDocuments(),
-        Product.countDocuments(),
-        Order.countDocuments(),
-        Order.aggregate([
-          {
-            $match: {
-              paymentStatus: "paid",
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+
+    const previousMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() - 1,
+      1
+    );
+
+    const previousMonthEnd = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+
+    const [
+      totalUsers,
+      totalProducts,
+      totalOrders,
+
+      revenueResult,
+
+      pendingOrders,
+      deliveredOrders,
+      paidOrders,
+
+      currentMonthRevenue,
+      previousMonthRevenue,
+
+      currentMonthUsers,
+      previousMonthUsers,
+
+      currentMonthOrders,
+      previousMonthOrders,
+    ] = await Promise.all([
+      User.countDocuments(),
+
+      Product.countDocuments(),
+
+      Order.countDocuments(),
+
+      Order.aggregate([
+        {
+          $match: {
+            paymentStatus: "paid",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: "$totalAmount",
             },
           },
-          {
-            $group: {
-              _id: null,
-              totalRevenue: {
-                $sum: "$totalAmount",
-              },
+        },
+      ]),
+
+      Order.countDocuments({
+        status: "pending",
+      }),
+
+      Order.countDocuments({
+        status: "delivered",
+      }),
+
+      Order.countDocuments({
+        paymentStatus: "paid",
+      }),
+
+      Order.aggregate([
+        {
+          $match: {
+            paymentStatus: "paid",
+            createdAt: {
+              $gte: currentMonthStart,
             },
           },
-        ]),
-      ]);
+        },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: "$totalAmount",
+            },
+          },
+        },
+      ]),
 
-    console.log("Counts loaded successfully");
+      Order.aggregate([
+        {
+          $match: {
+            paymentStatus: "paid",
+            createdAt: {
+              $gte: previousMonthStart,
+              $lt: previousMonthEnd,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: "$totalAmount",
+            },
+          },
+        },
+      ]),
+
+      User.countDocuments({
+        createdAt: {
+          $gte: currentMonthStart,
+        },
+      }),
+
+      User.countDocuments({
+        createdAt: {
+          $gte: previousMonthStart,
+          $lt: previousMonthEnd,
+        },
+      }),
+
+      Order.countDocuments({
+        createdAt: {
+          $gte: currentMonthStart,
+        },
+      }),
+
+      Order.countDocuments({
+        createdAt: {
+          $gte: previousMonthStart,
+          $lt: previousMonthEnd,
+        },
+      }),
+    ]);
 
     const recentOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(10)
       .populate("user", "name email");
-
-    console.log("Recent orders loaded");
 
     const ordersByStatus = await Order.aggregate([
       {
@@ -49,23 +161,58 @@ export const getDashboardStats = async (req, res) => {
       },
     ]);
 
-    console.log("Status aggregation loaded");
+    const totalRevenue =
+      revenueResult[0]?.totalRevenue || 0;
+
+    const currentRevenue =
+      currentMonthRevenue[0]?.total || 0;
+
+    const previousRevenue =
+      previousMonthRevenue[0]?.total || 0;
+
+    const calculateGrowth = (current, previous) => {
+      if (previous === 0) {
+        return current > 0 ? 100 : 0;
+      }
+
+      return Number(
+        (((current - previous) / previous) * 100).toFixed(1)
+      );
+    };
 
     res.json({
       success: true,
+
       stats: {
         totalUsers,
         totalProducts,
         totalOrders,
-        totalRevenue: revenueResult[0]?.totalRevenue || 0,
+        totalRevenue,
+        pendingOrders,
+        deliveredOrders,
+        paidOrders,
+
+        revenueGrowth: calculateGrowth(
+          currentRevenue,
+          previousRevenue
+        ),
+
+        userGrowth: calculateGrowth(
+          currentMonthUsers,
+          previousMonthUsers
+        ),
+
+        orderGrowth: calculateGrowth(
+          currentMonthOrders,
+          previousMonthOrders
+        ),
+
         recentOrders,
         ordersByStatus,
       },
     });
   } catch (error) {
-    console.error("DASHBOARD ERROR");
-    console.error(error);
-    console.error(error.stack);
+    console.error("Dashboard Stats Error:", error);
 
     res.status(500).json({
       success: false,
@@ -310,8 +457,6 @@ export const getLowStockProducts = async (req, res) => {
 
 export const getAnalyticsSummary = async (req, res) => {
   try {
-    console.log("Analytics Summary Called");
-    console.log("Period:", req.query.period);
     const period = req.query.period || "7days";
 
     let days = 7;
@@ -330,48 +475,128 @@ export const getAnalyticsSummary = async (req, res) => {
         days = 7;
     }
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    // Current Period
+    const currentStart = new Date();
+    currentStart.setDate(currentStart.getDate() - days);
 
-    const [totalRevenueResult, totalOrders, newUsers] = await Promise.all([
+    // Previous Period
+    const previousStart = new Date();
+    previousStart.setDate(previousStart.getDate() - days * 2);
+
+    const previousEnd = new Date();
+    previousEnd.setDate(previousEnd.getDate() - days);
+
+    const [
+      currentRevenueResult,
+      previousRevenueResult,
+      currentOrders,
+      previousOrders,
+      currentUsers,
+      previousUsers,
+    ] = await Promise.all([
       Order.aggregate([
         {
           $match: {
             paymentStatus: "paid",
-            createdAt: { $gte: startDate },
+            createdAt: { $gte: currentStart },
           },
         },
         {
           $group: {
             _id: null,
-            totalRevenue: { $sum: "$totalAmount" },
+            total: { $sum: "$totalAmount" },
           },
         },
       ]),
+      Order.aggregate([
+        {
+          $match: {
+            paymentStatus: "paid",
+            createdAt: {
+              $gte: previousStart,
+              $lt: previousEnd,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$totalAmount" },
+          },
+        },
+      ]),
+
       Order.countDocuments({
-        createdAt: { $gte: startDate },
+        createdAt: { $gte: currentStart },
+      }),
+      Order.countDocuments({
+        createdAt: {
+          $gte: previousStart,
+          $lt: previousEnd,
+        },
       }),
       User.countDocuments({
-        createdAt: { $gte: startDate },
+        createdAt: { $gte: currentStart },
+      }),
+      User.countDocuments({
+        createdAt: {
+          $gte: previousStart,
+          $lt: previousEnd,
+        },
       }),
     ]);
 
-    const totalRevenue = totalRevenueResult[0]?.totalRevenue || 0;
+    const totalRevenue = currentRevenueResult[0]?.total || 0;
+    const previousRevenue = previousRevenueResult[0]?.total || 0;
 
-    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const avgOrderValue =
+      currentOrders > 0 ? totalRevenue / currentOrders : 0;
+
+    const previousAvgOrderValue =
+      previousOrders > 0 ? previousRevenue / previousOrders : 0;
+
+    const calcGrowth = (current, previous) => {
+      if (previous === 0) {
+        return current > 0 ? 100 : 0;
+      }
+
+      return Number(
+        (((current - previous) / previous) * 100).toFixed(1)
+      );
+    };
 
     res.json({
       totalRevenue,
-      revenueChange: 0,
-      totalOrders,
-      ordersChange: 0,
-      newUsers,
-      usersChange: 0,
+      revenueChange: calcGrowth(
+        totalRevenue,
+        previousRevenue
+      ),
+
+      totalOrders: currentOrders,
+      ordersChange: calcGrowth(
+        currentOrders,
+        previousOrders
+      ),
+
+      newUsers: currentUsers,
+      usersChange: calcGrowth(
+        currentUsers,
+        previousUsers
+      ),
+
       avgOrderValue,
-      avgOrderChange: 0,
+      avgOrderChange: calcGrowth(
+        avgOrderValue,
+        previousAvgOrderValue
+      ),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Analytics Summary Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -518,58 +743,122 @@ export const getAnalyticsCharts = async (req, res) => {
       value: c.value,
     }));
 
-    //
-    // TOP PRODUCTS
-    //
-    const topProductsRaw = await Order.aggregate([
-      {
-        $unwind: "$items",
-      },
-      {
-        $group: {
-          _id: "$items.product",
-          unitsSold: {
-            $sum: "$items.quantity",
-          },
-          revenue: {
-            $sum: {
-              $multiply: ["$items.quantity", "$items.price"],
-            },
-          },
-        },
-      },
-      {
-        $sort: {
-          revenue: -1,
-        },
-      },
-      {
-        $limit: 10,
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "_id",
-          foreignField: "_id",
-          as: "product",
-        },
-      },
-      {
-        $unwind: "$product",
-      },
-    ]);
+//
+// TOP PRODUCTS WITH GROWTH
+//
 
-    const topProducts = topProductsRaw.map((item) => ({
-      _id: item.product._id,
-      name: item.product.name,
-      image: item.product.images?.[0]?.url || null,
-      brand: item.product.brand,
-      category: item.product.category,
+const previousStartDate = new Date();
+previousStartDate.setDate(previousStartDate.getDate() - days * 2);
+
+const previousEndDate = new Date();
+previousEndDate.setDate(previousEndDate.getDate() - days);
+
+// Current Period Products
+const currentProducts = await Order.aggregate([
+  {
+    $match: {
+      createdAt: {
+        $gte: startDate,
+      },
+      paymentStatus: "paid",
+    },
+  },
+  {
+    $unwind: "$items",
+  },
+  {
+    $group: {
+      _id: "$items.product",
+      unitsSold: {
+        $sum: "$items.quantity",
+      },
+      revenue: {
+        $sum: {
+          $multiply: ["$items.quantity", "$items.price"],
+        },
+      },
+    },
+  },
+  {
+    $sort: {
+      revenue: -1,
+    },
+  },
+  {
+    $limit: 10,
+  },
+]);
+
+// Previous Period Products
+const previousProducts = await Order.aggregate([
+  {
+    $match: {
+      createdAt: {
+        $gte: previousStartDate,
+        $lt: previousEndDate,
+      },
+      paymentStatus: "paid",
+    },
+  },
+  {
+    $unwind: "$items",
+  },
+  {
+    $group: {
+      _id: "$items.product",
+      revenue: {
+        $sum: {
+          $multiply: ["$items.quantity", "$items.price"],
+        },
+      },
+    },
+  },
+]);
+
+const previousRevenueMap = new Map(
+  previousProducts.map((p) => [
+    p._id.toString(),
+    p.revenue,
+  ])
+);
+
+const topProducts = await Promise.all(
+  currentProducts.map(async (item) => {
+    const product = await Product.findById(item._id);
+
+    if (!product) return null;
+
+    const previousRevenue =
+      previousRevenueMap.get(item._id.toString()) || 0;
+
+    let growth = 0;
+
+    if (previousRevenue === 0) {
+      growth = item.revenue > 0 ? 100 : 0;
+    } else {
+      growth = Number(
+        (
+          ((item.revenue - previousRevenue) /
+            previousRevenue) *
+          100
+        ).toFixed(1)
+      );
+    }
+
+    return {
+      _id: product._id,
+      name: product.name,
+      image: product.images?.[0]?.url || null,
+      brand: product.brand,
+      category: product.category,
       unitsSold: item.unitsSold,
       revenue: item.revenue,
-      growth: 0,
-    }));
+      growth,
+    };
+  })
+);
 
+const filteredTopProducts = topProducts.filter(Boolean);
     //
     // USER GROWTH
     //
@@ -627,12 +916,12 @@ export const getAnalyticsCharts = async (req, res) => {
     }
 
     res.json({
-      revenue,
-      orders: ordersChart,
-      categories,
-      topProducts,
-      userGrowth,
-    });
+  revenue,
+  orders: ordersChart,
+  categories,
+  topProducts: filteredTopProducts,
+  userGrowth,
+});
   } catch (error) {
     console.error(error);
     res.status(500).json({
