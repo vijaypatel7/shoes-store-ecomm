@@ -26,7 +26,6 @@ dotenv.config();
 const app = express();
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
-import listEndpoints from 'express-list-endpoints';
 
 
 
@@ -116,12 +115,6 @@ app.use(
   swaggerUi.setup(swaggerSpec)
 );
 
-console.table(
-  listEndpoints(app).map(route => ({
-    path: route.path,
-    methods: route.methods.join(', ')
-  }))
-);
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
