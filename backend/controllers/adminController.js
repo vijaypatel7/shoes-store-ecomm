@@ -310,20 +310,53 @@ export const getLowStockProducts = async (req, res) => {
 
 export const getAnalyticsSummary = async (req, res) => {
   try {
-    const totalRevenueResult = await Order.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$totalAmount" },
+    console.log("Analytics Summary Called");
+    console.log("Period:", req.query.period);
+    const period = req.query.period || "7days";
+
+    let days = 7;
+
+    switch (period) {
+      case "30days":
+        days = 30;
+        break;
+      case "3months":
+        days = 90;
+        break;
+      case "1year":
+        days = 365;
+        break;
+      default:
+        days = 7;
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const [totalRevenueResult, totalOrders, newUsers] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            paymentStatus: "paid",
+            createdAt: { $gte: startDate },
+          },
         },
-      },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$totalAmount" },
+          },
+        },
+      ]),
+      Order.countDocuments({
+        createdAt: { $gte: startDate },
+      }),
+      User.countDocuments({
+        createdAt: { $gte: startDate },
+      }),
     ]);
 
     const totalRevenue = totalRevenueResult[0]?.totalRevenue || 0;
-    const totalOrders = await Order.countDocuments();
-    const newUsers = await User.countDocuments({
-      createdAt: { $gte: startDate },
-    });
 
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 

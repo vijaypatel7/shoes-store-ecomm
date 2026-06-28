@@ -24,6 +24,12 @@ import userRoutes from './routes/users.js';
 dotenv.config();
 
 const app = express();
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './swagger.js';
+import listEndpoints from 'express-list-endpoints';
+
+
+
 const PORT = process.env.PORT || 5001;
 
 // Connect to Database
@@ -104,6 +110,18 @@ app.use((err, req, res, next) => {
   });
 });
 
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
+
+console.table(
+  listEndpoints(app).map(route => ({
+    path: route.path,
+    methods: route.methods.join(', ')
+  }))
+);
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

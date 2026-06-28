@@ -34,7 +34,6 @@ router.get('/revenue', getRevenueData);
 router.get('/products', getAllProducts);
 router.get('/products/low-stock', getLowStockProducts);
 router.put('/orders/:id/status', updateOrderStatus);
-router.post('/products', createProduct);
 router.put('/products/:id', updateProduct);
 router.delete('/products/:id', deleteProduct);
 router.get('/users', getAllUsers);
